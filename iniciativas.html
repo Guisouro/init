@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Gerador de iniciativas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+* { box-sizing:border-box }
+body { padding:0; font:16px/1em Arial; max-width:480px; margin:0 auto; position:relative; }
+header { position:fixed; top:0; left:0; display:block; text-align:center; background-color:#f5f5f5; height:60px; width:100%; border-bottom:solid 1px #ccc; }
+main { display:block; width:100%; min-height:50px; }
+#form { position:relative; margin:20px 0; }
+#save { background:url('img/ico-save.png') no-repeat center center; width:60px; height:60px; border:none; cursor:pointer; display:inline-block; vertical-align:top; }
+#load { background:url('img/ico-play.png') no-repeat center center; width:60px; height:60px; border:none; cursor:pointer; display:inline-block; vertical-align:top; border-left:dashed 1px #ccc; }
+#editar { background:url('img/ico-editar.png') no-repeat center center; width:60px; height:60px; border:none; cursor:pointer; display:inline-block; vertical-align:top; border-left:dashed 1px #ccc; }
+#limpar { background:url('img/ico-remover.png') no-repeat center center; width:60px; height:60px; border:none; border-left:dashed 1px #ccc; border-right:dashed 1px #ccc; cursor:pointer; display:inline-block; vertical-align:top; }
+#gerar-novos { background:url('img/ico-refresh.png') no-repeat center center; width:60px; height:60px; border:none; cursor:pointer; display:inline-block; vertical-align:top; }
+#gerador { overflow:auto; margin:60px 0 30px; height:calc(100% - 100px); }
+#adicionar { height:40px; width:100%; font-weight:bold; cursor:pointer; color:#2D7151; line-height:40px; text-align:center; background-color:#ECFBE3; position:fixed; bottom:0; left:0; border-top:solid 1px #2D7151; }
+#adicionar:before { height:40px; width:30px; content:''; display:inline-block; vertical-align:top; background:url('img/ico-adicionar.png') no-repeat 5px center #ECFBE3; }
+#resultados { display:none; overflow:auto; margin:60px 0 30px; height:calc(100% - 100px); }
+.item_iniciativa { display:flex; flex-flow:row nowrap; margin:5px;}
+.input { height:30px; padding:4px; }
+.value { height:30px; width:30%; padding:4px; margin-left:3px }
+.remover { background:url('img/ico-remover.png') no-repeat center center; width:30px; height:30px; border:none; cursor:pointer; }
+.item_resultado { padding:4px; width:100%; }
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>
+window.$tela = 'editar';
+$(function(){
+	window.$gerador = $("#gerador");
+	window.$resultados = $("#resultados");
+	$("#editar").on('click',function(){
+		$resultados.hide();
+		$("#form").show();
+		$tela = 'editar';
+	});
+	$("#limpar").on('click',function(){
+		if (confirm('Você quer mesmo limpar a tabela?')){
+			$gerador.empty();
+			if ($tela == 'editar'){
+				$resultados.hide().empty();
+				$("#form").show();
+			} else {
+				$tela = 'editar';
+				$resultados.empty();
+			}
+		}
+	});
+	$("#gerar-novos").on('click',function(){
+		$("#form").hide();
+		$resultados.empty().show();
+		$tela = 'resultados';
+
+		var iniciativas = [];
+		$(".item_iniciativa").each(function(){
+			var desc = $(this).find('.input').val();
+			var value = $(this).find('.value').val();
+			if ($.trim(value) != ''){
+				var rand = Math.ceil(Math.random()*20);
+				var total = parseInt(value,10) + rand;
+				iniciativas.push({desc:desc,total:total,rand:rand,value:value});
+			}
+		})
+		iniciativas.sort(function(a,b){
+			return b.total - a.total;
+		});
+		$(iniciativas).each(function(){
+			$resultados.append('<div class="item_resultado">'+this.desc+': '+this.total+' ('+this.rand+'+'+this.value+')</div>');
+		});
+	});
+	$("#adicionar").click(function(){
+		var item = $("<div class='item_iniciativa' />");
+		var input = $("<input type='text' class='input' placeholder='Descrição' />");
+		var value = $("<input type='number' class='value' placeholder='Valor' />");
+		var botao = $("<div class='remover' />");
+		botao.click(function(e){
+			e.preventDefault();
+			$(this).parent().remove();
+		});
+		item.append(input,value,botao);
+		$gerador.append(item);
+	});
+	$("#save").click(function(){
+		$("#editar").click();
+		var dados = [];
+
+		$('.input').each(function(){
+			if (!!$.trim(this.value)){
+				dados.push({nome:this.value,valor:$(this).next().val()});
+			}
+		});
+		var str = JSON.stringify(dados);
+		localStorage.removeItem('dados');
+		localStorage.dados = str;
+		alert('Dados salvos!');
+	});
+	$("#load").click(function(){
+		$("#editar").click();
+		var dados = eval(localStorage.getItem('dados'));
+		$gerador.empty();
+		$("#form").show();
+		$tela = 'editar';
+		$resultados.empty();
+		var item,input,value,botao;
+		for (var i = 0, size = dados.length; i < size; i++){
+			item = $("<div class='item_iniciativa' />");
+			input = $("<input type='text' class='input' placeholder='Descrição' />");
+			value = $("<input type='number' class='value' placeholder='Valor' />");
+			botao = $("<div class='remover' />");
+			input.val(dados[i].nome);
+			value.val(dados[i].valor);
+			botao.click(function(e){
+				e.preventDefault();
+				$(this).parent().remove();
+			});
+			item.append(input,value,botao);
+			$gerador.append(item);
+		}
+	});
+});
+</script>
+</head>
+<body>
+	<header>
+		<span id="save" title="Salvar"></span>
+		<span id="load" title="Carregar registros salvos"></span>
+		<span id="editar" title="Editar Registros"></span>
+		<span id="limpar" title="Apagar registros"></span>
+		<span id="gerar-novos" title="Gerar rolagem aleatória"></span>
+	</header>
+	<main>
+		<section id="form">
+			<div id="gerador">
+			</div>
+			<footer id="adicionar">Adicionar</footer>
+		</section>
+		<section id="resultados">
+		</section>
+	</main>
+</body>
+</html>
